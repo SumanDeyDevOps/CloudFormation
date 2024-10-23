@@ -1,134 +1,278 @@
-Description: Mini Network Creation
+ 
+#IP Addressing Plan
+# VPC: 10.1.0.0/16
+# Public Subnet 1: 10.1.1.0/24
+# Private Subnet 1: 10.1.2.0/24
+# Public Subnet 2: 10.1.3.0/24
+# Private Subnet 2: 10.1.4.0/24
+AWSTemplateFormatVersion: '2010-09-09'
+Description: AWS CloudFormation Stack for a Secure Highly Available Multi-AZ Network with Jump Box
 
 Resources:
-  MyVPC:
+  #Creating my VPC
+  SumanVPC: 
     Type: 'AWS::EC2::VPC'
     Properties:
-      CidrBlock: '10.0.0.0/16'
+      #IP Addressing Plan
+      CidrBlock: '10.1.0.0/16'
       EnableDnsSupport: true
       EnableDnsHostnames: true
 
-  PublicSubnetOne:
-      Type: 'AWS::EC2::Subnet'
-      Properties:
-        VpcId: !Ref MyVPC
-        CidrBlock: '10.0.1.0/24'
-        MapPublicIpOnLaunch: true
-        AvailabilityZone: !Select [0, !GetAZs '']
+  #Creating Internet Gateway  
+  SumanInternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
 
-  PrivateSubnetOne:
-      Type: 'AWS::EC2::Subnet'
-      Properties:
-        VpcId: !Ref MyVPC
-        CidrBlock: '10.0.2.0/24'
-        AvailabilityZone: !Select [0, !GetAZs '']
-    
-  PublicSubnetRouteTableAssociation:
-      Type: 'AWS::EC2::SubnetRouteTableAssociation'
-      Properties:
-        SubnetId: !Ref PublicSubnetOne
-        RouteTableId: !Ref PublicRouteTable
-
-  PrivateSubnetRouteTableAssociation:
-      Type: 'AWS::EC2::SubnetRouteTableAssociation'
-      Properties:
-        SubnetId: !Ref PrivateSubnetOne
-        RouteTableId: !Ref PrivateRouteTable
-
-  InternetGateway:
-      Type: 'AWS::EC2::InternetGateway'
-    
+  #Attaching Internet Gateway to VPC
   AttachGateway:
-      Type: 'AWS::EC2::VPCGatewayAttachment'
-      Properties:
-        VpcId: !Ref MyVPC
-        InternetGatewayId: !Ref InternetGateway
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref SumanVPC
+      InternetGatewayId: !Ref SumanInternetGateway
 
-  PublicRouteTable:
-      Type: 'AWS::EC2::RouteTable'
-      Properties:
-        VpcId: !Ref MyVPC
-    
-  PrivateRouteTable:
-      Type: 'AWS::EC2::RouteTable'
-      Properties:
-        VpcId: !Ref MyVPC
+  # Subnets in AZ1
+  # Creating Public Subnet1
+  PublicSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref SumanVPC
+      CidrBlock: '10.1.1.0/24'
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [0, !GetAZs '']
+      #AvailabilityZone: eu-west-1a
+  # Creating Private Subnet1
+  PrivateSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref SumanVPC
+      CidrBlock: '10.1.2.0/24'
+      AvailabilityZone: !Select [0, !GetAZs '']
+      #AvailabilityZone: eu-west-1a 
 
+  # Subnets in AZ2
+  # Creating Public Subnet2
+  PublicSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref SumanVPC
+      CidrBlock: '10.1.3.0/24'
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select [1, !GetAZs '']
+      #AvailabilityZone: eu-west-1b
+  # Creating Private Subnet2
+  PrivateSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref SumanVPC
+      CidrBlock: '10.1.4.0/24'
+      AvailabilityZone: !Select [1, !GetAZs '']
+      #AvailabilityZone: eu-west-1b
+
+  # Creating Public Route table
+  SumanPublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref SumanVPC
+
+  # Creating Private Route table
+  SumanPrivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref SumanVPC
+
+  # Creating Public routing
   PublicRoute:
-      Type: 'AWS::EC2::Route'
-      Properties:
-        RouteTableId: !Ref PublicRouteTable
-        DestinationCidrBlock: '0.0.0.0/0'
-        GatewayId: !Ref InternetGateway
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref SumanPublicRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref SumanInternetGateway
 
-  PublicSecurityGroup:
-      Type: 'AWS::EC2::SecurityGroup'
-      Properties:
-        GroupDescription: 'Allow SSH and HTTP traffic'
-        VpcId: !Ref MyVPC
-        SecurityGroupIngress:
-          - IpProtocol: tcp
-            FromPort: 22
-            ToPort: 22
-            CidrIp: '0.0.0.0/0'
-          - IpProtocol: tcp
-            FromPort: 80
-            ToPort: 80
-            CidrIp: '0.0.0.0/0'
+  # Associating Route table to Public subnet1
+  PublicSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      RouteTableId: !Ref SumanPublicRouteTable
 
-  PrivateSecurityGroup:
-      Type: 'AWS::EC2::SecurityGroup'
-      Properties:
-        GroupDescription: 'Allow internal traffic'
-        VpcId: !Ref MyVPC
-        SecurityGroupIngress:
-          - IpProtocol: tcp
-            FromPort: 22
-            ToPort: 22
-            CidrIp: '10.0.0.0/16'
+  # Associating Route table to Public subnet2
+  PublicSubnet2RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PublicSubnet2
+      RouteTableId: !Ref SumanPublicRouteTable
 
-  PublicInstance:
-      Type: 'AWS::EC2::Instance'
-      Properties:
-        SubnetId: !Ref PublicSubnetOne
-        InstanceType: 't2.micro'
-        ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
-        SecurityGroupIds: 
-          - !Ref PublicSecurityGroup
-        BlockDeviceMappings:
-          - DeviceName: /dev/xvda
-            Ebs:
-              VolumeSize: '8'
-              Encrypted: 'true'
-        KeyName: 'myKeyValuePair'  
+  # Associating Route table to private subnet1
+  PrivateSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      RouteTableId: !Ref SumanPrivateRouteTable
 
-  PrivateInstance:
-      Type: 'AWS::EC2::Instance'
-      Properties:
-        SubnetId: !Ref PrivateSubnetOne
-        InstanceType: 't2.micro'
-        ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
-        SecurityGroupIds: 
-          - !Ref PrivateSecurityGroup
+  # Associating Route table to private subnet2
+  PrivateSubnet2RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      RouteTableId: !Ref SumanPrivateRouteTable
 
-  JumpBoxSecurityGroup:
-      Type: 'AWS::EC2::SecurityGroup'
-      Properties:
-        GroupDescription: 'Allow SSH traffic for jump box'
-        VpcId: !Ref MyVPC
-        SecurityGroupIngress:
+  # Creating public security group
+  SumanPublicSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Allow SSH and HTTP traffic'
+      VpcId: !Ref SumanVPC
+      SecurityGroupIngress:
         - IpProtocol: tcp
-        FromPort: 22
-        ToPort: 22
-        CidrIp: '192.168.0.0/24'
-        # CidrIp: 'your.trusted.ip/32' # Replace with your trusted IP
+          FromPort: 22
+          ToPort: 22
+          CidrIp: '24.206.111.18/32'  # Replace with your trusted IP
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: '0.0.0.0/0'
 
-  JumpBoxInstance:
-      Type: 'AWS::EC2::Instance'
-      Properties:
-      SubnetId: !Ref PublicSubnetOne
+  # Creating private security group
+  SumanPrivateSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Allow internal traffic'
+      VpcId: !Ref SumanVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: '10.1.0.0/16'
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: '10.1.0.0/16'
+
+  # Creating jump box security group
+  SumanJumpBoxSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Allow SSH traffic for jump box'
+      VpcId: !Ref SumanVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: '24.206.111.18/32'  # Replace with your trusted IP
+
+  # Creating my public instance 1
+  SumanPublicInstance1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      InstanceType: 't2.micro'
+      #AvailabilityZone: eu-west-1a
+      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
+      SecurityGroupIds: 
+        - !Ref SumanPublicSecurityGroup
+      KeyName: 'myKeyValuePair'
+      BlockDeviceMappings:
+        - DeviceName: /dev/sdh
+          Ebs:
+            VolumeSize: 20
+            Encrypted: true
+  # Creating my public instance 2
+  SumanPublicInstance2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      SubnetId: !Ref PublicSubnet2
       InstanceType: 't2.micro'
       ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
-      SecurityGroupIds:
-      - !Ref JumpBoxSecurityGroup
+      SecurityGroupIds: 
+        - !Ref SumanPublicSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sdh
+          Ebs:
+            VolumeSize: 20
+            Encrypted: true
+
+  # Creating my private instance 1
+  PrivateInstance1:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      SubnetId: !Ref PrivateSubnet1
+      InstanceType: 't2.micro'
+      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
+      SecurityGroupIds: 
+        - !Ref SumanPrivateSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sdh
+          Ebs:
+            VolumeSize: 20
+            Encrypted: true
+
+  # Creating my private instance 2
+  PrivateInstance2:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      SubnetId: !Ref PrivateSubnet2
+      InstanceType: 't2.micro'
+      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
+      SecurityGroupIds: 
+        - !Ref SumanPrivateSecurityGroup
+      BlockDeviceMappings:
+        - DeviceName: /dev/sdh
+          Ebs:
+            VolumeSize: 20
+            Encrypted: true
+
+  # Creating my Jump box instance to connect instance
+  JumpBoxInstance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      SubnetId: !Ref PublicSubnet1
+      InstanceType: 't2.micro'
+      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
+      SecurityGroupIds: 
+        - !Ref SumanJumpBoxSecurityGroup
       KeyName: 'myKeyValuePair' # Ensure you have a key pair for SSH access
+
+  # Private Routes to allow instances to communicate internally
+  PrivateRoute1:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref SumanPrivateRouteTable
+      DestinationCidrBlock: '0.0.0.0/0'
+      GatewayId: !Ref SumanInternetGateway
+
+  # Load balancer security group
+  ELBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: ELB Security Group
+      VpcId: !Ref SumanVPC
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+
+  # Load Balancer for EC2
+  LoadBalancerforEC2:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Subnets: 
+      - !Ref PublicSubnet1
+      - !Ref PublicSubnet2      
+      #AvailabilityZones: [eu-west-1a, eu-west-1b]
+      Instances:
+      - !Ref SumanPublicInstance1
+      - !Ref SumanPublicInstance2
+      - !Ref PrivateInstance1
+      - !Ref PrivateInstance2
+      Listeners:
+      - LoadBalancerPort: '80'
+        InstancePort: '80'
+        Protocol: HTTP
+      HealthCheck:
+        Target: HTTP:80/
+        HealthyThreshold: '3'
+        UnhealthyThreshold: '5'
+        Interval: '30'
+        Timeout: '5'
+      SecurityGroups:
+        - !GetAtt ELBSecurityGroup.GroupId
