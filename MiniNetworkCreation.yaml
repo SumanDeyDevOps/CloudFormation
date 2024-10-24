@@ -1,11 +1,9 @@
- 
 #IP Addressing Plan
 # VPC: 10.1.0.0/16
 # Public Subnet 1: 10.1.1.0/24
 # Private Subnet 1: 10.1.2.0/24
 # Public Subnet 2: 10.1.3.0/24
 # Private Subnet 2: 10.1.4.0/24
-AWSTemplateFormatVersion: '2010-09-09'
 Description: AWS CloudFormation Stack for a Secure Highly Available Multi-AZ Network with Jump Box
 
 Resources:
@@ -30,6 +28,7 @@ Resources:
       InternetGatewayId: !Ref SumanInternetGateway
 
   # Subnets in AZ1
+
   # Creating Public Subnet1
   PublicSubnet1:
     Type: 'AWS::EC2::Subnet'
@@ -39,6 +38,7 @@ Resources:
       MapPublicIpOnLaunch: true
       AvailabilityZone: !Select [0, !GetAZs '']
       #AvailabilityZone: eu-west-1a
+
   # Creating Private Subnet1
   PrivateSubnet1:
     Type: 'AWS::EC2::Subnet'
@@ -49,6 +49,7 @@ Resources:
       #AvailabilityZone: eu-west-1a 
 
   # Subnets in AZ2
+
   # Creating Public Subnet2
   PublicSubnet2:
     Type: 'AWS::EC2::Subnet'
@@ -58,6 +59,7 @@ Resources:
       MapPublicIpOnLaunch: true
       AvailabilityZone: !Select [1, !GetAZs '']
       #AvailabilityZone: eu-west-1b
+
   # Creating Private Subnet2
   PrivateSubnet2:
     Type: 'AWS::EC2::Subnet'
@@ -125,7 +127,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: '24.206.111.18/32'  # Replace with your trusted IP
+          CidrIp: '24.206.111.18/32'  # My IP address
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
@@ -157,7 +159,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: 22
           ToPort: 22
-          CidrIp: '24.206.111.18/32'  # Replace with your trusted IP
+          CidrIp: '24.206.111.18/32'  # My IP address
 
   # Creating my public instance 1
   SumanPublicInstance1:
@@ -166,7 +168,7 @@ Resources:
       SubnetId: !Ref PublicSubnet1
       InstanceType: 't2.micro'
       #AvailabilityZone: eu-west-1a
-      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
+      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for my desired region
       SecurityGroupIds: 
         - !Ref SumanPublicSecurityGroup
       KeyName: 'myKeyValuePair'
@@ -175,13 +177,14 @@ Resources:
           Ebs:
             VolumeSize: 20
             Encrypted: true
+
   # Creating my public instance 2
   SumanPublicInstance2:
     Type: 'AWS::EC2::Instance'
     Properties:
       SubnetId: !Ref PublicSubnet2
       InstanceType: 't2.micro'
-      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
+      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for my desired region
       SecurityGroupIds: 
         - !Ref SumanPublicSecurityGroup
       BlockDeviceMappings:
@@ -196,7 +199,7 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnet1
       InstanceType: 't2.micro'
-      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
+      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for my desired region
       SecurityGroupIds: 
         - !Ref SumanPrivateSecurityGroup
       BlockDeviceMappings:
@@ -211,7 +214,7 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnet2
       InstanceType: 't2.micro'
-      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
+      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for my desired region
       SecurityGroupIds: 
         - !Ref SumanPrivateSecurityGroup
       BlockDeviceMappings:
@@ -226,10 +229,10 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnet1
       InstanceType: 't2.micro'
-      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for your desired region
+      ImageId: 'ami-00385a401487aefa4' # Use the AMI ID for my desired region
       SecurityGroupIds: 
         - !Ref SumanJumpBoxSecurityGroup
-      KeyName: 'myKeyValuePair' # Ensure you have a key pair for SSH access
+      KeyName: 'myKeyValuePair' # Ensure a key pair for SSH access
 
   # Private Routes to allow instances to communicate internally
   PrivateRoute1:
